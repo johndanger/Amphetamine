@@ -1,15 +1,77 @@
 import QtQuick
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import qs.Common
 import qs.Services
 import qs.Modules.Plugins
+import qs.Widgets
 
 PluginComponent {
     id: root
 
     property bool hasMediaDevices: false
     property bool sleepInhibited: false
+    
+    onSleepInhibitedChanged: {
+        console.log("sleepInhibited changed to:", sleepInhibited)
+    }
+
+    // Get plugin directory path
+    readonly property string pluginPath: Qt.resolvedUrl(".").toString().replace("file://", "")
+    readonly property string iconPath: pluginPath + "/icon/"
+    
+    // Bar indicator for horizontal bar
+    horizontalBarPill: Component {
+        Item {
+            width: 40
+            height: 16
+            
+            Image {
+                id: iconImageH
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                source: Qt.resolvedUrl("icon/coffee-on.svg")
+                sourceSize.width: 16
+                sourceSize.height: 16
+                visible: false
+            }
+            
+            ColorOverlay {
+                anchors.fill: iconImageH
+                source: iconImageH
+                color: root.sleepInhibited ? Theme.primary : "#808080"
+                opacity: root.sleepInhibited ? 1.0 : 0.3
+            }
+        }
+    }
+
+    // Bar indicator for vertical bar
+    verticalBarPill: Component {
+        Item {
+            width: 40
+            height: 16
+            
+            Image {
+                id: iconImageV
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                source: Qt.resolvedUrl("icon/coffee-on.svg")
+                sourceSize.width: 16
+                sourceSize.height: 16
+                visible: false
+            }
+            
+            ColorOverlay {
+                anchors.fill: iconImageV
+                source: iconImageV
+                color: root.sleepInhibited ? Theme.primary : "#808080"
+                opacity: root.sleepInhibited ? 1.0 : 0.3
+            }
+        }
+    }
 
     // Timer to periodically check for media devices
     Timer {
@@ -62,7 +124,7 @@ PluginComponent {
     // Process to enable sleep inhibition
     Process {
         id: inhibitEnableProcess
-        command: ["ds", "ipc", "call", "inhibit", "enable"]
+        command: ["dms", "ipc", "call", "inhibit", "enable"]
 
         stdout: SplitParser {
             onRead: line => {
@@ -73,7 +135,23 @@ PluginComponent {
         stderr: SplitParser {
             onRead: line => {
                 if (line.trim()) {
-                    console.warn("Inhibit enable error:", line)
+                    console.error("Inhibit enable error:", line)
+                }
+            }
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0) {
+                console.log("Sleep inhibition successfully enabled")
+                // Verify state matches
+                if (root.hasMediaDevices && !root.sleepInhibited) {
+                    root.sleepInhibited = true
+                }
+            } else {
+                console.error("Failed to enable sleep inhibition, exit code:", exitCode)
+                // Revert state if command failed
+                if (!root.hasMediaDevices) {
+                    root.sleepInhibited = false
                 }
             }
         }
@@ -82,7 +160,7 @@ PluginComponent {
     // Process to disable sleep inhibition
     Process {
         id: inhibitDisableProcess
-        command: ["ds", "ipc", "call", "inhibit", "disable"]
+        command: ["dms", "ipc", "call", "inhibit", "disable"]
 
         stdout: SplitParser {
             onRead: line => {
@@ -93,7 +171,23 @@ PluginComponent {
         stderr: SplitParser {
             onRead: line => {
                 if (line.trim()) {
-                    console.warn("Inhibit disable error:", line)
+                    console.error("Inhibit disable error:", line)
+                }
+            }
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode === 0) {
+                console.log("Sleep inhibition successfully disabled")
+                // Verify state matches
+                if (!root.hasMediaDevices && root.sleepInhibited) {
+                    root.sleepInhibited = false
+                }
+            } else {
+                console.error("Failed to disable sleep inhibition, exit code:", exitCode)
+                // Revert state if command failed
+                if (root.hasMediaDevices) {
+                    root.sleepInhibited = true
                 }
             }
         }
@@ -106,14 +200,30 @@ PluginComponent {
     function updateSleepInhibition() {
         if (root.hasMediaDevices && !root.sleepInhibited) {
             // Enable sleep inhibition
-            inhibitEnableProcess.running = true
+            console.log("Enabling sleep inhibition (media device detected)")
+            // Update icon immediately
             root.sleepInhibited = true
-            console.log("Sleep inhibition enabled (media device detected)")
+            // Stop process if already running
+            if (inhibitEnableProcess.running) {
+                inhibitEnableProcess.running = false
+            }
+            // Wait a moment then start
+            Qt.callLater(() => {
+                inhibitEnableProcess.running = true
+            })
         } else if (!root.hasMediaDevices && root.sleepInhibited) {
             // Disable sleep inhibition
-            inhibitDisableProcess.running = true
+            console.log("Disabling sleep inhibition (no media devices)")
+            // Update icon immediately
             root.sleepInhibited = false
-            console.log("Sleep inhibition disabled (no media devices)")
+            // Stop process if already running
+            if (inhibitDisableProcess.running) {
+                inhibitDisableProcess.running = false
+            }
+            // Wait a moment then start
+            Qt.callLater(() => {
+                inhibitDisableProcess.running = true
+            })
         }
     }
 

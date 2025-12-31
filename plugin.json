@@ -4,7 +4,7 @@
   "description": "Inhibits sleep when a media device is detected",
   "version": "1.0.0",
   "author": "johndanger",
-  "type": "daemon",
+  "type": "widget",
   "component": "./InhibitSleep.qml",
   "permissions": []
 }
