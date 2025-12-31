@@ -1,5 +1,4 @@
 import QtQuick
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import qs.Common
@@ -17,30 +16,16 @@ PluginComponent {
         console.log("sleepInhibited changed to:", sleepInhibited)
     }
 
-    // Get plugin directory path
-    readonly property string pluginPath: Qt.resolvedUrl(".").toString().replace("file://", "")
-    readonly property string iconPath: pluginPath + "/icon/"
-    
     // Bar indicator for horizontal bar
     horizontalBarPill: Component {
         Item {
             width: 40
             height: 16
             
-            Image {
-                id: iconImageH
+            DankIcon {
                 anchors.centerIn: parent
-                width: 16
-                height: 16
-                source: Qt.resolvedUrl("icon/coffee-on.svg")
-                sourceSize.width: 16
-                sourceSize.height: 16
-                visible: false
-            }
-            
-            ColorOverlay {
-                anchors.fill: iconImageH
-                source: iconImageH
+                name: "coffee"
+                size: 16
                 color: root.sleepInhibited ? Theme.primary : "#808080"
                 opacity: root.sleepInhibited ? 1.0 : 0.3
             }
@@ -53,20 +38,10 @@ PluginComponent {
             width: 40
             height: 16
             
-            Image {
-                id: iconImageV
+            DankIcon {
                 anchors.centerIn: parent
-                width: 16
-                height: 16
-                source: Qt.resolvedUrl("icon/coffee-on.svg")
-                sourceSize.width: 16
-                sourceSize.height: 16
-                visible: false
-            }
-            
-            ColorOverlay {
-                anchors.fill: iconImageV
-                source: iconImageV
+                name: "coffee"
+                size: 16
                 color: root.sleepInhibited ? Theme.primary : "#808080"
                 opacity: root.sleepInhibited ? 1.0 : 0.3
             }
